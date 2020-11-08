@@ -26,16 +26,15 @@ class DKN(object):
 
     def _build_model(self, args):
         with tf.compat.v1.name_scope('embedding'):
-            word_embs = np.load('../data/news/word_embeddings_' + str(args.word_dim) + '.npy')
-            entity_embs = np.load('../data/kg/entity_embeddings_' + args.KGE + '_' + str(args.entity_dim) + '.npy')
+            word_embs = np.load(args.word_embeddings)
+            entity_embs = np.load(args.entity_embeddings)
             self.word_embeddings = tf.Variable(word_embs, dtype=np.float32, name='word')
             self.entity_embeddings = tf.Variable(entity_embs, dtype=np.float32, name='entity')
             self.params.append(self.word_embeddings)
             self.params.append(self.entity_embeddings)
 
             if args.use_context:
-                context_embs = np.load(
-                    '../data/kg/context_embeddings_' + args.KGE + '_' + str(args.entity_dim) + '.npy')
+                context_embs = np.load(args.context_embeddings)
                 self.context_embeddings = tf.Variable(context_embs, dtype=np.float32, name='context')
                 self.params.append(self.context_embeddings)
 

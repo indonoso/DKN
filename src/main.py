@@ -5,6 +5,12 @@ from train import train
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_file', type=str, default='../data/news/train.txt', help='path to the training file')
 parser.add_argument('--test_file', type=str, default='../data/news/test.txt', help='path to the test file')
+
+parser.add_argument('--entity_embeddings', type=str, default='', help='path to the training file')
+parser.add_argument('--word_embeddings', type=str, default='', help='path to the test file')
+parser.add_argument('--context_embeddings', type=str, default='', help='path to the test file')
+
+
 parser.add_argument('--transform', type=bool, default=True, help='whether to transform entity embeddings')
 parser.add_argument('--use_context', type=bool, default=False, help='whether to use context embeddings')
 parser.add_argument('--max_click_history', type=int, default=30, help='number of sampled click history for each user')
