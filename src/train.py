@@ -1,4 +1,4 @@
-from dkn import DKN
+from dkn_bert import DKN_Bert
 import tensorflow as tf
 import numpy as np
 
@@ -13,7 +13,7 @@ def get_feed_dict(model, data, start, end):
 
 
 def train(args, train_data, test_data):
-    model = DKN(args)
+    model = DKN_Bert(args)
 
     with tf.compat.v1.Session() as sess:
         sess.run(tf.compat.v1.global_variables_initializer())

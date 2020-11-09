@@ -18,7 +18,7 @@ def load_data(args):
 
 def read(file):
     df = pd.read_table(file, sep='\t', header=None, names=['user_id', 'news_words', 'news_entities', 'label'])
-    df['news_words'] = df['news_words'].map(lambda x: [int(i) for i in x.split(',')])
+    #df['news_words'] = df['news_words'].map(lambda x: [int(i) for i in x.split(',')])
     df['news_entities'] = df['news_entities'].map(lambda x: [int(i) for i in x.split(',')])
     return df
 
