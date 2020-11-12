@@ -2,18 +2,20 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 from dkn import DKN
-from transformers import FeatureExtractionPipeline, AutoTokenizer, AutoModel
-
-
+from transformers import AutoModel, TFBertModel, BertForPreTraining, FeatureExtractionPipeline,TFPreTrainedModel, AutoTokenizer
+import logging
+from pipeline import CachedFeatureExtractionPipeline
 tf.compat.v1.disable_eager_execution()
 
 
 class DKN_Bert:
     def __init__(self, args):
         self.params = []  # for computing regularization loss
-        tokenizer = AutoTokenizer.from_pretrained(args.model_path, from_tf=True)
-        model = AutoModel.from_pretrained(args.model_path, from_tf=True)
-        self.scibert = FeatureExtractionPipeline(model, tokenizer, task='scibert_embeddings')
+        tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
+        model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
+        self.word_dim = args.word_dim
+        self.scibert_kwargs = {'max_length': args.max_title_length}
+        self.scibert = CachedFeatureExtractionPipeline(model, tokenizer, task='word_embeddings')
         self._build_inputs(args)
         self._build_model(args)
         self._build_train(args)
@@ -21,19 +23,19 @@ class DKN_Bert:
     def _build_inputs(self, args):
         with tf.compat.v1.name_scope('input'):
             self.clicked_words = tf.compat.v1.placeholder(
-                dtype=tf.int32, shape=[None, args.max_click_history, args.max_title_length], name='clicked_words')
+                dtype=tf.float32, shape=[None, args.max_click_history, args.max_title_length, args.word_dim], name='clicked_words')
             self.clicked_entities = tf.compat.v1.placeholder(
                 dtype=tf.int32, shape=[None, args.max_click_history, args.max_title_length], name='clicked_entities')
             self.news_words = tf.compat.v1.placeholder(
-                dtype=tf.int32, shape=[None, args.max_title_length], name='news_words')
+                dtype=tf.float32, shape=[None, args.max_title_length, args.word_dim], name='words')
             self.news_entities = tf.compat.v1.placeholder(
-                dtype=tf.int32, shape=[None, args.max_title_length], name='news_entities')
+                dtype=tf.int32, shape=[None, args.max_title_length], name='entities')
             self.labels = tf.compat.v1.placeholder(
                 dtype=tf.float32, shape=[None], name='labels')
 
     def _build_model(self, args):
         with tf.compat.v1.name_scope('embedding'):
-            word_embs = np.load(args.word_embeddings)
+            #word_embs = np.load(args.word_embeddings)
             entity_embs = np.load(args.entity_embeddings)
             #self.word_embeddings = tf.Variable(word_embs, dtype=np.float32, name='word')
             self.entity_embeddings = tf.Variable(entity_embs, dtype=np.float32, name='entity')
@@ -60,7 +62,7 @@ class DKN_Bert:
 
     def _attention(self, args):
         # (batch_size * max_click_history, max_title_length)
-        clicked_words = tf.reshape(self.clicked_words, shape=[-1, args.max_title_length])
+        clicked_words = tf.reshape(self.clicked_words, shape=[-1, args.max_title_length, args.word_dim])
         clicked_entities = tf.reshape(self.clicked_entities, shape=[-1, args.max_title_length])
 
         with tf.compat.v1.variable_scope('kcnn', reuse=tf.compat.v1.AUTO_REUSE):  # reuse the variables of KCNN
@@ -92,11 +94,12 @@ class DKN_Bert:
 
         return user_embeddings, news_embeddings
 
-    def _kcnn(self, words, entities, args):
+    def _kcnn(self, embedded_words, entities, args):
         # (batch_size * max_click_history, max_title_length, word_dim) for users
         # (batch_size, max_title_length, word_dim) for news
-        embedded_words = self.scibert(words) ## TOOD aquí hay que poner a Bert
-        embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings, ids=entities)
+        # embedded_words =   ## TOOD aquí hay que poner a Bert
+        embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings,
+                                                   ids=entities)
 
         # (batch_size * max_click_history, max_title_length, full_dim) for users
         # (batch_size, max_title_length, full_dim) for news
@@ -105,7 +108,7 @@ class DKN_Bert:
             concat_input = tf.concat([embedded_words, embedded_entities, embedded_contexts], axis=-1)
             full_dim = args.word_dim + args.entity_dim * 2
         else:
-            concat_input = tf.concat([embedded_words, embedded_entities], axis=-1)
+            concat_input = tf.concat([embedded_words, embedded_entities], axis=-1, name='concat_tensors')
             full_dim = args.word_dim + args.entity_dim
 
         # (batch_size * max_click_history, max_title_length, full_dim, 1) for users
