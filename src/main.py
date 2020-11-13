@@ -31,6 +31,8 @@ parser.add_argument('--max_title_length', type=int, default=10,
 
 parser.add_argument('--split_words', type=bool, default=True,
                     help='whether to split the words column using `,` or keep the string')
+parser.add_argument('--user_bert_embeddings', type=bool, default=False,
+                    help='use Bert to get word embeddings. Requires split_words to be False')
 
 args = parser.parse_args()
 
