@@ -24,7 +24,7 @@ parser.add_argument('--KGE', type=str, default='TransE',
                     help='knowledge graph embedding method, please ensure that the specified input file exists')
 parser.add_argument('--entity_dim', type=int, default=50,
                     help='dimension of entity embeddings, please ensure that the specified input file exists')
-parser.add_argument('--word_dim', type=int, default=50,
+parser.add_argument('--word_dim', type=int,
                     help='dimension of word embeddings, please ensure that the specified input file exists')
 parser.add_argument('--max_title_length', type=int, default=10,
                     help='maximum length of news titles, should be in accordance with the input datasets')
