@@ -1,12 +1,14 @@
-from transformers import AutoModel, TFBertModel, BertForPreTraining, FeatureExtractionPipeline,TFPreTrainedModel, AutoTokenizer
+from transformers import FeatureExtractionPipeline
 import numpy as np
 
 
 class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, word_dim, max_length, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.embeddings_cache = {}
+        self.word_dim = word_dim
+        self.max_length = max_length
 
     def _parse_and_tokenize(self, inputs, **kwargs):
         """
@@ -21,7 +23,7 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
         return inputs
 
-    def __call__(self, sentences, *args, **kwargs):
+    def __call__(self, sentences):
         ids, missing_sentences = [], []
         for i, s in enumerate(sentences):
             if s not in self.embeddings_cache and s not in missing_sentences:
@@ -29,7 +31,8 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                 missing_sentences.append(s)
 
         if len(missing_sentences) > 0:
-            missing_sentences_tokenization = self._parse_and_tokenize(missing_sentences, *args, **kwargs)
+            missing_sentences_tokenization = self._parse_and_tokenize(missing_sentences, padding='max_length',
+                                                                      truncation=True, max_lenght=self.max_length)
             missing_sentences_embeddings = self._forward(missing_sentences_tokenization)
         missing_index = 0
         embeddings = []
@@ -41,4 +44,7 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                 embeddings.append(sentence_embeddings)
             else:
                 embeddings.append(self.embeddings_cache[s])
-        return np.array(embeddings)
+        if self.word_dim:
+            return np.array(embeddings)[:, :, :self.word_dim]
+        else:
+            return np.array(embeddings)

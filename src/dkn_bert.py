@@ -11,12 +11,8 @@ class DKN_Bert:
         self.params = []  # for computing regularization loss
         tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
         model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
-        self.word_dim = args.word_dim
-        self.scibert_kwargs = {'max_length': args.max_title_length}
-        self.scibert = CachedFeatureExtractionPipeline(model, tokenizer, task='word_embeddings')
-        self._build_inputs(args)
-        self._build_model(args)
-        self._build_train(args)
+        self.scibert = CachedFeatureExtractionPipeline(args.word_dim, args.max_title_length, model, tokenizer, task='word_embeddings')
+        super().__init__(args)
 
     def _build_inputs(self, args):
         with tf.compat.v1.name_scope('input'):

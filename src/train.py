@@ -6,9 +6,9 @@ tf.compat.v1.disable_eager_execution()
 
 
 def get_feed_dict_words(model, data, start, end):
-    feed_dict = {model.clicked_words: np.array([model.scibert(cw.tolist(), padding='max_length', truncation=True, **model.scibert_kwargs)[:,:,:model.word_dim] for cw in data.clicked_words[start:end]]),
+    feed_dict = {model.clicked_words: np.array([model.scibert(cw.tolist()) for cw in data.clicked_words[start:end]]),
                  model.clicked_entities: data.clicked_entities[start:end],
-                 model.words: np.asarray(model.scibert(data.words[start:end].tolist(), padding='max_length', truncation=True, **model.scibert_kwargs))[:, :, :model.word_dim],
+                 model.words: np.array(model.scibert(data.words[start:end].tolist())),
                  model.entities: data.entities[start:end],
                  model.labels: data.labels[start:end]}
 
