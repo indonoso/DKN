@@ -1,9 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
-from dkn import DKN
-from transformers import AutoModel, TFBertModel, BertForPreTraining, FeatureExtractionPipeline,TFPreTrainedModel, AutoTokenizer
-import logging
+from transformers import AutoModel, AutoTokenizer
 from pipeline import CachedFeatureExtractionPipeline
 tf.compat.v1.disable_eager_execution()
 
@@ -23,23 +21,22 @@ class DKN_Bert:
     def _build_inputs(self, args):
         with tf.compat.v1.name_scope('input'):
             self.clicked_words = tf.compat.v1.placeholder(
-                dtype=tf.float32, shape=[None, args.max_click_history, args.max_title_length, args.word_dim], name='clicked_words')
+                dtype=tf.float32, shape=[None, args.max_click_history, args.max_title_length, args.word_dim],
+                name='clicked_words')
             self.clicked_entities = tf.compat.v1.placeholder(
                 dtype=tf.int32, shape=[None, args.max_click_history, args.max_title_length], name='clicked_entities')
-            self.news_words = tf.compat.v1.placeholder(
+            self.words = tf.compat.v1.placeholder(
                 dtype=tf.float32, shape=[None, args.max_title_length, args.word_dim], name='words')
-            self.news_entities = tf.compat.v1.placeholder(
+            self.entities = tf.compat.v1.placeholder(
                 dtype=tf.int32, shape=[None, args.max_title_length], name='entities')
             self.labels = tf.compat.v1.placeholder(
                 dtype=tf.float32, shape=[None], name='labels')
 
     def _build_model(self, args):
         with tf.compat.v1.name_scope('embedding'):
-            #word_embs = np.load(args.word_embeddings)
+
             entity_embs = np.load(args.entity_embeddings)
-            #self.word_embeddings = tf.Variable(word_embs, dtype=np.float32, name='word')
             self.entity_embeddings = tf.Variable(entity_embs, dtype=np.float32, name='entity')
-            #self.params.append(self.word_embeddings)
             self.params.append(self.entity_embeddings)
 
             if args.use_context:
@@ -56,8 +53,8 @@ class DKN_Bert:
                         self.context_embeddings, units=args.entity_dim, activation=tf.nn.tanh,
                         name='transformed_context', kernel_regularizer=tf.keras.regularizers.l2(0.5 * (args.l2_weight)))
 
-        user_embeddings, news_embeddings = self._attention(args)
-        self.scores_unnormalized = tf.reduce_sum(input_tensor=user_embeddings * news_embeddings, axis=1)
+        user_embeddings, item_embeddings = self._attention(args)
+        self.scores_unnormalized = tf.reduce_sum(input_tensor=user_embeddings * item_embeddings, axis=1)
         self.scores = tf.sigmoid(self.scores_unnormalized)
 
     def _attention(self, args):
@@ -71,17 +68,17 @@ class DKN_Bert:
             clicked_embeddings = self._kcnn(clicked_words, clicked_entities, args)
 
             # (batch_size, title_embedding_length)
-            news_embeddings = self._kcnn(self.news_words, self.news_entities, args)
+            item_embeddings = self._kcnn(self.words, self.entities, args)
 
         # (batch_size, max_click_history, title_embedding_length)
         clicked_embeddings = tf.reshape(
             clicked_embeddings, shape=[-1, args.max_click_history, args.n_filters * len(args.filter_sizes)])
 
         # (batch_size, 1, title_embedding_length)
-        news_embeddings_expanded = tf.expand_dims(news_embeddings, 1)
+        item_embeddings_expanded = tf.expand_dims(item_embeddings, 1)
 
         # (batch_size, max_click_history)
-        attention_weights = tf.reduce_sum(input_tensor=clicked_embeddings * news_embeddings_expanded, axis=-1)
+        attention_weights = tf.reduce_sum(input_tensor=clicked_embeddings * item_embeddings_expanded, axis=-1)
 
         # (batch_size, max_click_history)
         attention_weights = tf.nn.softmax(attention_weights, axis=-1)
@@ -92,17 +89,17 @@ class DKN_Bert:
         # (batch_size, title_embedding_length)
         user_embeddings = tf.reduce_sum(input_tensor=clicked_embeddings * attention_weights_expanded, axis=1)
 
-        return user_embeddings, news_embeddings
+        return user_embeddings, item_embeddings
 
     def _kcnn(self, embedded_words, entities, args):
         # (batch_size * max_click_history, max_title_length, word_dim) for users
-        # (batch_size, max_title_length, word_dim) for news
+        # (batch_size, max_title_length, word_dim) for items
         # embedded_words =   ## TOOD aquí hay que poner a Bert
         embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings,
                                                    ids=entities)
 
         # (batch_size * max_click_history, max_title_length, full_dim) for users
-        # (batch_size, max_title_length, full_dim) for news
+        # (batch_size, max_title_length, full_dim) for items
         if args.use_context:
             embedded_contexts = tf.nn.embedding_lookup(params=self.context_embeddings, ids=entities)
             concat_input = tf.concat([embedded_words, embedded_entities, embedded_contexts], axis=-1)
@@ -112,7 +109,7 @@ class DKN_Bert:
             full_dim = args.word_dim + args.entity_dim
 
         # (batch_size * max_click_history, max_title_length, full_dim, 1) for users
-        # (batch_size, max_title_length, full_dim, 1) for news
+        # (batch_size, max_title_length, full_dim, 1) for items
         concat_input = tf.expand_dims(concat_input, -1)
 
         outputs = []
@@ -124,22 +121,22 @@ class DKN_Bert:
                 self.params.append(w)
 
             # (batch_size * max_click_history, max_title_length - filter_size + 1, 1, n_filters_for_each_size) for users
-            # (batch_size, max_title_length - filter_size + 1, 1, n_filters_for_each_size) for news
+            # (batch_size, max_title_length - filter_size + 1, 1, n_filters_for_each_size) for items
             conv = tf.nn.conv2d(input=concat_input, filters=w, strides=[1, 1, 1, 1], padding='VALID', name='conv')
             relu = tf.nn.relu(tf.nn.bias_add(conv, b), name='relu')
 
             # (batch_size * max_click_history, 1, 1, n_filters_for_each_size) for users
-            # (batch_size, 1, 1, n_filters_for_each_size) for news
+            # (batch_size, 1, 1, n_filters_for_each_size) for items
             pool = tf.nn.max_pool2d(input=relu, ksize=[1, args.max_title_length - filter_size + 1, 1, 1],
                                   strides=[1, 1, 1, 1], padding='VALID', name='pool')
             outputs.append(pool)
 
         # (batch_size * max_click_history, 1, 1, n_filters_for_each_size * n_filter_sizes) for users
-        # (batch_size, 1, 1, n_filters_for_each_size * n_filter_sizes) for news
+        # (batch_size, 1, 1, n_filters_for_each_size * n_filter_sizes) for items
         output = tf.concat(outputs, axis=-1)
 
         # (batch_size * max_click_history, n_filters_for_each_size * n_filter_sizes) for users
-        # (batch_size, n_filters_for_each_size * n_filter_sizes) for news
+        # (batch_size, n_filters_for_each_size * n_filter_sizes) for items
         output = tf.reshape(output, [-1, args.n_filters * len(args.filter_sizes)])
 
         return output

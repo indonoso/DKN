@@ -1,6 +1,7 @@
 from transformers import AutoModel, TFBertModel, BertForPreTraining, FeatureExtractionPipeline,TFPreTrainedModel, AutoTokenizer
 import numpy as np
 
+
 class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
     def __init__(self, *args, **kwargs):

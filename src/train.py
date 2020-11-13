@@ -7,8 +7,8 @@ import numpy as np
 def get_feed_dict_words(model, data, start, end):
     feed_dict = {model.clicked_words: np.array([model.scibert(cw.tolist(), padding='max_length', truncation=True, **model.scibert_kwargs)[:,:,:model.word_dim] for cw in data.clicked_words[start:end]]),
                  model.clicked_entities: data.clicked_entities[start:end],
-                 model.news_words: np.asarray(model.scibert(data.words[start:end].tolist(), padding='max_length', truncation=True, **model.scibert_kwargs))[:,:,:model.word_dim],
-                 model.news_entities: data.entities[start:end],
+                 model.words: np.asarray(model.scibert(data.words[start:end].tolist(), padding='max_length', truncation=True, **model.scibert_kwargs))[:, :, :model.word_dim],
+                 model.entities: data.entities[start:end],
                  model.labels: data.labels[start:end]}
 
     return feed_dict
@@ -17,8 +17,8 @@ def get_feed_dict_words(model, data, start, end):
 def get_feed_dict_word_ids(model, data, start, end):
     feed_dict = {model.clicked_words: data.clicked_words[start:end],
                  model.clicked_entities: data.clicked_entities[start:end],
-                 model.news_words: data.news_words[start:end],
-                 model.news_entities: data.news_entities[start:end],
+                 model.words: data.words[start:end],
+                 model.entities: data.entities[start:end],
                  model.labels: data.labels[start:end]}
     return feed_dict
 

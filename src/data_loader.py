@@ -1,6 +1,6 @@
-import pandas as pd
-import numpy as np
 from collections import namedtuple
+import numpy as np
+import pandas as pd
 
 
 Data = namedtuple('Data', ['size', 'clicked_words', 'clicked_entities', 'words', 'entities', 'labels'])
