@@ -11,6 +11,16 @@ class DKN:
         self._build_model(args)
         self._build_train(args)
 
+    def _prepare_data_attention(self, args):
+        clicked_words = tf.reshape(self.clicked_words, shape=[-1, args.max_title_length])
+        clicked_entities = tf.reshape(self.clicked_entities, shape=[-1, args.max_title_length])
+        return clicked_words, clicked_entities
+
+    def _prepare_data_kcnn(self, words, entities):
+        embedded_words = tf.nn.embedding_lookup(params=self.word_embeddings, ids=words)
+        embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings, ids=entities)
+        return embedded_words, embedded_entities
+
     def _build_inputs(self, args):
         with tf.compat.v1.name_scope('input'):
             self.clicked_words = tf.compat.v1.placeholder(
@@ -51,8 +61,7 @@ class DKN:
 
     def _attention(self, args):
         # (batch_size * max_click_history, max_title_length)
-        clicked_words = tf.reshape(self.clicked_words, shape=[-1, args.max_title_length])
-        clicked_entities = tf.reshape(self.clicked_entities, shape=[-1, args.max_title_length])
+        clicked_words, clicked_entities = self._prepare_data_attention(args)
 
         with tf.compat.v1.variable_scope('kcnn', reuse=tf.compat.v1.AUTO_REUSE):  # reuse the variables of KCNN
             # (batch_size * max_click_history, title_embedding_length)
@@ -86,8 +95,7 @@ class DKN:
     def _kcnn(self, words, entities, args):
         # (batch_size * max_click_history, max_title_length, word_dim) for users
         # (batch_size, max_title_length, word_dim) for items
-        embedded_words = tf.nn.embedding_lookup(params=self.word_embeddings, ids=words)
-        embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings, ids=entities)
+        embedded_words, embedded_entities = self._prepare_data_kcnn(words, entities)
 
         # (batch_size * max_click_history, max_title_length, full_dim) for users
         # (batch_size, max_title_length, full_dim) for items
