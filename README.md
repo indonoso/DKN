@@ -1,17 +1,15 @@
 # DKN
 
-This repository is the implementation of [DKN](https://dl.acm.org/citation.cfm?id=3186175) ([arXiv](https://arxiv.org/abs/1801.08284)):
-> DKN: Deep Knowledge-Aware Network for News Recommendation  
-Hongwei Wang, Fuzheng Zhang, Xing Xie, Minyi Guo  
-The Web Conference 2018 (WWW 2018)
+This repository is a fork of the implementation of [DKN](https://dl.acm.org/citation.cfm?id=3186175) made by [@hwwang55](https://github.com/hwwang55) and published in this [repo](https://github.com/hwwang55/DKN).
 
-![](https://github.com/hwwang55/DKN/blob/master/framework.jpg)
+I've upgraded the code to TensorFlow 2.3 and also added the option to use [SciBERT](https://github.com/allenai/scibert) as word embeddings. 
 
-DKN is a deep knowledge-aware network that takes advantage of knowledge graph representation in news recommendation.
+From the original repo
+> DKN is a deep knowledge-aware network that takes advantage of knowledge graph representation in news recommendation.
 The main components in DKN is a KCNN module and an attention module:
-- The KCNN module is to learn from semantic-level and knowledge-level representations of news jointly.
-The multiple channels and alignment of words and entities enable KCNN to combine information from heterogeneous sources.
-- The attention module is to model the different impacts of a user’s diverse historical interests on current candidate news.
+> - The KCNN module is to learn from semantic-level and knowledge-level representations of news jointly.
+> The multiple channels and alignment of words and entities enable KCNN to combine information from heterogeneous sources.
+> - The attention module is to model the different impacts of a user’s diverse historical interests on current candidate news.
 
 
 ### Files in the folder
@@ -41,13 +39,7 @@ The multiple channels and alignment of words and entities enable KCNN to combine
 
 
 ### Required packages
-The code has been tested running under Python 3.6.5, with the following packages installed (along with their dependencies):
-- tensorflow-gpu == 1.4.0
-- numpy == 1.14.5
-- sklearn == 0.19.1
-- pandas == 0.23.0
-- gensim == 3.5.0
-
+The code has been tested running under Python 3.6.5. To run it you should install the requirements listed in `requirements.txt`.
 
 ### Running the code
 ```
@@ -61,5 +53,6 @@ $ ./transE
 $ cd ../..
 $ python kg_preprocess.py
 $ cd ../../src
-$ python main.py (note: use -h to check optional arguments)
+$ python main.py --entity_embeddings="/home/ivania/DKN/data/kg/entity_embeddings_TransE_50.npy"
+(note: use -h to check optional arguments)
 ```
