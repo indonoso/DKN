@@ -28,6 +28,10 @@ parser.add_argument('--word_dim', type=int, default=50,
                     help='dimension of word embeddings, please ensure that the specified input file exists')
 parser.add_argument('--max_title_length', type=int, default=10,
                     help='maximum length of news titles, should be in accordance with the input datasets')
+
+parser.add_argument('--split_words', type=bool, default=True,
+                    help='whether to split the words column using `,` or keep the string')
+
 args = parser.parse_args()
 
 train_data, test_data = load_data(args)
