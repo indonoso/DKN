@@ -2,6 +2,7 @@ from dkn_bert import DKN_Bert
 from dkn import DKN
 import tensorflow as tf
 import numpy as np
+tf.compat.v1.disable_eager_execution()
 
 
 def get_feed_dict_words(model, data, start, end):

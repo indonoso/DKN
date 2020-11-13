@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
-tf.compat.v1.disable_eager_execution()
 
 
 class DKN:
