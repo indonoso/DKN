@@ -32,7 +32,7 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
         if len(missing_sentences) > 0:
             missing_sentences_tokenization = self._parse_and_tokenize(missing_sentences, padding='max_length',
-                                                                      truncation=True, max_lenght=self.max_length)
+                                                                      truncation=True, max_length=self.max_length)
             missing_sentences_embeddings = self._forward(missing_sentences_tokenization)
         missing_index = 0
         embeddings = []

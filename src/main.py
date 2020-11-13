@@ -2,6 +2,18 @@ import argparse
 from data_loader import load_data
 from train import train
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_file', type=str, default='../data/news/train.txt', help='path to the training file')
 parser.add_argument('--test_file', type=str, default='../data/news/test.txt', help='path to the test file')
@@ -10,8 +22,8 @@ parser.add_argument('--entity_embeddings', type=str, default='', help='path to t
 parser.add_argument('--word_embeddings', type=str, default='', help='path to the test file')
 parser.add_argument('--context_embeddings', type=str, default='', help='path to the test file')
 
-parser.add_argument('--transform', type=bool, default=True, help='whether to transform entity embeddings')
-parser.add_argument('--use_context', type=bool, default=False, help='whether to use context embeddings')
+parser.add_argument('--transform', type=str2bool, default=True, help='whether to transform entity embeddings')
+parser.add_argument('--use_context', type=str2bool, default=False, help='whether to use context embeddings')
 parser.add_argument('--max_click_history', type=int, default=30, help='number of sampled click history for each user')
 parser.add_argument('--n_filters', type=int, default=128, help='number of filters for each size in KCNN')
 parser.add_argument('--filter_sizes', type=int, default=[1, 2], nargs='+',
@@ -29,12 +41,12 @@ parser.add_argument('--word_dim', type=int,
 parser.add_argument('--max_title_length', type=int, default=10,
                     help='maximum length of news titles, should be in accordance with the input datasets')
 
-parser.add_argument('--split_words', type=bool, default=True,
+parser.add_argument('--split_words', type=str2bool, default=True,
                     help='whether to split the words column using `,` or keep the string')
-parser.add_argument('--user_bert_embeddings', type=bool, default=False,
+parser.add_argument('--user_bert_embeddings', type=str2bool, default=False,
                     help='use Bert to get word embeddings. Requires split_words to be False')
 
 args = parser.parse_args()
-
+print(args)
 train_data, test_data = load_data(args)
 train(args, train_data, test_data)
