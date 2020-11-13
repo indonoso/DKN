@@ -1,2 +1,2 @@
-from base_dkn import DKN
-from dkn_bert import DKN_Bert
+from train import train as train_dkn
+from data_loader import load_data as load_dkn_data

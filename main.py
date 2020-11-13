@@ -1,6 +1,6 @@
 import argparse
-from data_loader import load_data
-from train import train
+from DKN import load_dkn_data
+from DKN import train_dkn
 
 
 def str2bool(v):
@@ -48,5 +48,5 @@ parser.add_argument('--user_bert_embeddings', type=str2bool, default=False,
 
 args = parser.parse_args()
 print(args)
-train_data, test_data = load_data(args)
-train(args, train_data, test_data)
+train_data, test_data = load_dkn_data(args)
+train_dkn(args, train_data, test_data)
