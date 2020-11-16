@@ -1,5 +1,5 @@
-from dkn_bert import DKN_Bert
-from base_dkn import DKN
+from .dkn_bert import DKN_Bert
+from .base_dkn import DKN
 import tensorflow as tf
 import numpy as np
 tf.compat.v1.disable_eager_execution()

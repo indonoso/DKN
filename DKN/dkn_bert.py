@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from transformers import AutoModel, AutoTokenizer
-from pipeline import CachedFeatureExtractionPipeline
-from base_dkn import DKN
+from .pipeline import CachedFeatureExtractionPipeline
+from .base_dkn import DKN
 
 
 class DKN_Bert(DKN):
