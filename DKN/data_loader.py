@@ -9,9 +9,10 @@ Data = namedtuple('Data', ['size', 'clicked_words', 'clicked_entities', 'words',
 def load_data(args):
     train_df = read(args.train_file, split_words=args.split_words)
     test_df = read(args.test_file, split_words=args.split_words)
-    uid2words, uid2entities = aggregate(train_df, args.max_click_history)
-    train_data = transform(train_df, uid2words, uid2entities)
-    test_data = transform(test_df, uid2words, uid2entities)
+    train_df_clicked = aggregate(train_df, args.max_click_history)
+    test_df_clicked = aggregate(test_df, args.max_click_history)
+    train_data = transform(train_df, train_df_clicked)
+    test_data = transform(test_df, test_df_clicked)
     return train_data, test_data
 
 
@@ -24,22 +25,21 @@ def read(file, split_words=True):
 
 
 def aggregate(train_df, max_click_history):
-    uid2words = dict()
-    uid2entities = dict()
     pos_df = train_df[train_df['label'] == 1]
-    for user_id in set(pos_df['user_id']):
-        df_user = pos_df[pos_df['user_id'] == user_id]
+    index_col = ('clicked_words', 'clicked_entities')
+
+    def agg(df_user):
         words = np.array(df_user['words'].tolist())
         entities = np.array(df_user['entities'].tolist())
         indices = np.random.choice(list(range(0, df_user.shape[0])), size=max_click_history, replace=True)
-        uid2words[user_id] = words[indices]
-        uid2entities[user_id] = entities[indices]
-    return uid2words, uid2entities
+        return pd.Series((words[indices], entities[indices]), index=index_col)
+    r = pos_df.groupby(['user_id'], as_index=False).apply(agg)
+    return r
 
 
-def transform(df, uid2words, uid2entities):
-    df['clicked_words'] = df['user_id'].map(lambda x: uid2words[x])
-    df['clicked_entities'] = df['user_id'].map(lambda x: uid2entities[x])
+def transform(df, clicked):
+    df = pd.merge(df, clicked[['clicked_words', 'user_id']], on='user_id')
+    df = pd.merge(df, clicked[['clicked_entities', 'user_id']], on='user_id')
     data = Data(size=df.shape[0],
                 clicked_words=np.array(df['clicked_words'].tolist()),
                 clicked_entities=np.array(df['clicked_entities'].tolist()),
