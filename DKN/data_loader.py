@@ -7,8 +7,8 @@ Data = namedtuple('Data', ['size', 'clicked_words', 'clicked_entities', 'words',
 
 
 def load_data(args):
-    train_df = read(args.train_file, args.max_title_length, args.max_click_history, split_words=args.split_words)
-    test_df = read(args.test_file, args.max_title_length, args.max_click_history,split_words=args.split_words)
+    train_df = read(args.train_file, args.max_title_length, args.max_title_length, split_words=args.split_words)
+    test_df = read(args.test_file, args.max_title_length, args.max_title_length, split_words=args.split_words)
     train_df_clicked = aggregate(train_df, args.max_click_history)
     test_df_clicked = aggregate(test_df, args.max_click_history)
     train_data = transform(train_df, train_df_clicked)
