@@ -7,8 +7,8 @@ Data = namedtuple('Data', ['size', 'clicked_words', 'clicked_entities', 'words',
 
 
 def load_data(args):
-    train_df = read(args.train_file, split_words=args.split_words)
-    test_df = read(args.test_file, split_words=args.split_words)
+    train_df = read(args.train_file, args.max_title_length, args.max_click_history, split_words=args.split_words)
+    test_df = read(args.test_file, args.max_title_length, args.max_click_history,split_words=args.split_words)
     train_df_clicked = aggregate(train_df, args.max_click_history)
     test_df_clicked = aggregate(test_df, args.max_click_history)
     train_data = transform(train_df, train_df_clicked)
@@ -16,12 +16,21 @@ def load_data(args):
     return train_data, test_data
 
 
-def read(file, split_words=True):
+def read(file, max_words, max_entities, split_words=True):
     df = pd.read_table(file, sep='\t', header=None, names=['user_id', 'words', 'entities', 'label'])
-    df['entities'] = df['entities'].map(lambda x: [int(i) for i in x.split(',')])
+    df['entities'] = df['entities'].map(lambda x: __pad_truncate([int(i) for i in x.split(',')],
+                                                                 max_entities))
     if split_words:
-        df['words'] = df['words'].map(lambda x: [int(i) for i in x.split(',')])
+        df['words'] = df['words'].map(lambda x: __pad_truncate([int(i) for i in x.split(',')],
+                                                               max_words))
     return df
+
+
+def __pad_truncate(x, max_length):
+    if len(x) < max_length:
+        return x + [0] * (max_length - len(x))
+    else:
+        return x[:max_length]
 
 
 def aggregate(train_df, max_click_history):
