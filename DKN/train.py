@@ -5,7 +5,7 @@ import numpy as np
 import logging
 from tqdm import tqdm
 tf.compat.v1.disable_eager_execution()
-logging.basicConfig(level=logging.DEBUG,datefmt='%d/%m/%Y %I:%M:%S %p',
+logging.basicConfig(level=logging.DEBUG, datefmt='%d/%m/%Y %I:%M:%S %p',
                     format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def train(args, train_data, test_data):
             # training
             start_list = list(range(0, train_data.size, args.batch_size))
             np.random.shuffle(start_list)
-            for start in tqdm(start_list, desc='Batches', mininterval=5):
+            for start in tqdm(start_list, desc='Batches', mininterval=5, position=0, leave=True):
                 end = start + args.batch_size
                 model.train(sess, get_feed_dict(model, train_data, start, end))
 
@@ -61,7 +61,7 @@ def train(args, train_data, test_data):
                                                       start, start + args.batch_size))
                 labels.append(l)
                 scores.append(s)
-            train_auc = model.eval(labels, scores)
+            train_auc = model.eval(np.hstack(labels), np.hstack(scores))
             logger.info('Evaluation - validation ')
             labels, scores = model.get_labels_scores(sess, get_feed_dict(model, test_data, 0, test_data.size))
             test_auc = model.eval(labels, scores)
