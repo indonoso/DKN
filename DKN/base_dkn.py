@@ -154,7 +154,10 @@ class DKN:
     def train(self, sess, feed_dict):
         return sess.run(self.optimizer, feed_dict)
 
-    def eval(self, sess, feed_dict):
-        labels, scores = sess.run([self.labels, self.scores], feed_dict)
+    def eval(self, labels, scores):
         auc = roc_auc_score(y_true=labels, y_score=scores)
         return auc
+
+    def get_labels_scores(self, sess, feed_dict):
+        labels, scores = sess.run([self.labels, self.scores], feed_dict)
+        return labels, scores
