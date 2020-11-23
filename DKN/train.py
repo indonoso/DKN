@@ -1,4 +1,4 @@
-from .dkn_bert import DKN_Bert
+from .dknbert import DKNBert
 from .base_dkn import DKN
 import tensorflow as tf
 import numpy as np
@@ -30,14 +30,15 @@ def get_feed_dict_word_ids(model, data, start, end):
     return feed_dict
 
 
-def train(args, train_data, test_data):
+def train(train_data, test_data, n_epochs=1, batch_size=128, output_path=None, **kwargs):
 
-    if args.user_bert_embeddings:
-        model = DKN_Bert(args)
+    if kwargs.get('use_bert_embeddings'):
+        model = DKNBert(**kwargs)
         get_feed_dict = get_feed_dict_words
         logger.debug('Using Bert Embeddings')
     else:
-        model = DKN(args)
+        print(kwargs)
+        model = DKN(**kwargs)
         get_feed_dict = get_feed_dict_word_ids
         logger.debug('Using W2V embeddings')
     saver = tf.compat.v1.train.Saver()
@@ -45,20 +46,20 @@ def train(args, train_data, test_data):
         sess.run(tf.compat.v1.global_variables_initializer())
         sess.run(tf.compat.v1.local_variables_initializer())
 
-        for step in tqdm(range(args.n_epochs), desc='Epochs'):
+        for step in tqdm(range(n_epochs), desc='Epochs'):
             logger.debug('Starting training')
             # training
-            start_list = list(range(0, train_data.size, args.batch_size))
+            start_list = list(range(0, train_data.size, batch_size))
             np.random.shuffle(start_list)
             for start in tqdm(start_list, desc='Batches', mininterval=5, position=0, leave=True):
-                end = start + args.batch_size
+                end = start + batch_size
                 model.train(sess, get_feed_dict(model, train_data, start, end))
 
             logger.info('Evaluation - training')
             labels, scores = [], []
-            for start in range(0, train_data.size, args.batch_size):
+            for start in range(0, train_data.size, batch_size):
                 l, s = model.get_labels_scores(sess, get_feed_dict(model, train_data,
-                                                      start, start + args.batch_size))
+                                                      start, start + batch_size))
                 labels.append(l)
                 scores.append(s)
             train_auc = model.eval(np.hstack(labels), np.hstack(scores))
@@ -67,5 +68,6 @@ def train(args, train_data, test_data):
             test_auc = model.eval(labels, scores)
             print('epoch %d  train_auc %.4f  test_auc: %.4f' % (step, train_auc, test_auc))
 
-        save_path = saver.save(sess, args.output_path)
-        print("Model saved in path: %s" % save_path)
+        if output_path:
+            save_path = saver.save(sess, output_path)
+            print("Model saved in path: %s" % save_path)
