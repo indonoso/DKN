@@ -7,56 +7,59 @@ logger = logging.getLogger(__name__)
 Data = namedtuple('Data', ['size', 'clicked_words', 'clicked_entities', 'words', 'entities', 'labels'])
 
 
-def load_data(args):
-    logger.debug('Reading files')
-    train_df = read(args.train_file, args.max_title_length, args.max_title_length, split_words=args.split_words)
-    test_df = read(args.test_file, args.max_title_length, args.max_title_length, split_words=args.split_words)
-    logger.debug('Aggregating columns')
-    train_df_clicked = aggregate(train_df, args.max_click_history)
-    test_df_clicked = aggregate(test_df, args.max_click_history)
-    logger.debug('Transforming data')
-    train_data = transform(train_df, train_df_clicked)
-    test_data = transform(test_df, test_df_clicked)
-    return train_data, test_data
+class DataLoader:
+    def __init__(self, file_path=None, use_bert_embeddings=True, max_text_length=10, max_click_history=10, **kwargs):
+        self.max_text_length = max_text_length
+        self.split_words = not use_bert_embeddings
+        self.max_click_history = max_click_history
+        self.file_path = file_path
+        self._load_data()
 
+    def _load_data(self):
+        logger.debug('Reading files')
+        df = self.read()
+        logger.debug('Aggregating columns')
+        df_clicked = self.aggregate(df)
+        logger.debug('Transforming data')
+        self.data = self.transform(df, df_clicked)
+        return self.data
 
-def read(file, max_words, max_entities, split_words=True):
-    df = pd.read_table(file, sep='\t', header=None, names=['user_id', 'words', 'entities', 'label'])
-    df['entities'] = df['entities'].map(lambda x: __pad_truncate([int(i) for i in x.split(',')],
-                                                                 max_entities))
-    if split_words:
-        df['words'] = df['words'].map(lambda x: __pad_truncate([int(i) for i in x.split(',')],
-                                                               max_words))
-    return df
+    def read(self):
+        df = pd.read_table(self.file_path, sep='\t', header=None, names=['user_id', 'words', 'entities', 'label'])
+        df['entities'] = df['entities'].map(lambda x: self.__pad_truncate([int(i) for i in x.split(',')],
+                                                                     self.max_text_length))
+        if self.split_words:
+            df['words'] = df['words'].map(lambda x: self.__pad_truncate([int(i) for i in x.split(',')],
+                                                                   self.max_text_length))
+        return df
 
+    @staticmethod
+    def __pad_truncate(x, max_length):
+        if len(x) < max_length:
+            return x + [0] * (max_length - len(x))
+        else:
+            return x[:max_length]
 
-def __pad_truncate(x, max_length):
-    if len(x) < max_length:
-        return x + [0] * (max_length - len(x))
-    else:
-        return x[:max_length]
+    def aggregate(self, df):
+        pos_df = df[df['label'] == 1]
+        index_col = ('clicked_words', 'clicked_entities')
 
+        def agg(df_user):
+            words = np.array(df_user['words'].tolist())
+            entities = np.array(df_user['entities'].tolist())
+            indices = np.random.choice(list(range(0, df_user.shape[0])), size=self.max_click_history, replace=True)
+            return pd.Series((words[indices], entities[indices]), index=index_col)
+        r = pos_df.groupby(['user_id'], as_index=False).apply(agg)
+        return r
 
-def aggregate(train_df, max_click_history):
-    pos_df = train_df[train_df['label'] == 1]
-    index_col = ('clicked_words', 'clicked_entities')
-
-    def agg(df_user):
-        words = np.array(df_user['words'].tolist())
-        entities = np.array(df_user['entities'].tolist())
-        indices = np.random.choice(list(range(0, df_user.shape[0])), size=max_click_history, replace=True)
-        return pd.Series((words[indices], entities[indices]), index=index_col)
-    r = pos_df.groupby(['user_id'], as_index=False).apply(agg)
-    return r
-
-
-def transform(df, clicked):
-    df = pd.merge(df, clicked[['clicked_words', 'user_id']], on='user_id')
-    df = pd.merge(df, clicked[['clicked_entities', 'user_id']], on='user_id')
-    data = Data(size=df.shape[0],
-                clicked_words=np.array(df['clicked_words'].tolist()),
-                clicked_entities=np.array(df['clicked_entities'].tolist()),
-                words=np.array(df['words'].tolist()),
-                entities=np.array(df['entities'].tolist()),
-                labels=np.array(df['label']))
-    return data
+    @staticmethod
+    def transform(df, clicked):
+        df = pd.merge(df, clicked[['clicked_words', 'user_id']], on='user_id')
+        df = pd.merge(df, clicked[['clicked_entities', 'user_id']], on='user_id')
+        data = Data(size=df.shape[0],
+                    clicked_words=np.array(df['clicked_words'].tolist()),
+                    clicked_entities=np.array(df['clicked_entities'].tolist()),
+                    words=np.array(df['words'].tolist()),
+                    entities=np.array(df['entities'].tolist()),
+                    labels=np.array(df['label']))
+        return data

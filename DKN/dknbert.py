@@ -29,11 +29,11 @@ class DKNBert(DKN):
 
     def _build_model(self):
         with tf.compat.v1.name_scope('embedding'):
-            self.entity_embeddings = tf.Variable(np.load(self.entity_embeddings), dtype=np.float32, name='entity')
+            self.entity_embeddings = tf.Variable(np.load(self.entity_embeddings_path), dtype=np.float32, name='entity')
             self.params.append(self.entity_embeddings)
 
             if self.use_context:
-                context_embs = np.load(self.context_embeddings)
+                context_embs = np.load(self.context_embeddings_path)
                 self.context_embeddings = tf.Variable(context_embs, dtype=np.float32, name='context')
                 self.params.append(self.context_embeddings)
 

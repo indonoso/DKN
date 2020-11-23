@@ -4,8 +4,8 @@ from sklearn.metrics import roc_auc_score
 
 
 class DKN:
-    def __init__(self, transform=False, user_bert_embeddings=None, word_embeddings_path=None,
-                 entity_embeddings_path=None,context_embeddings_path=None, use_context=False,max_click_history=10,
+    def __init__(self, transform=False, use_bert_embeddings=None, word_embeddings_path=None,
+                 entity_embeddings_path=None, context_embeddings_path=None, use_context=False, max_click_history=10,
                  max_text_length=10, entity_dim=32, word_dim=32, l2_weight=0.01, filter_sizes=(1, 2), n_filters=128,
                  lr=0.001, batch_size=128, n_epochs=10):
 
@@ -13,9 +13,9 @@ class DKN:
         self.transform = transform
 
         # Word Embeddings
-        self.user_bert_embeddings = user_bert_embeddings
+        self.use_bert_embeddings = use_bert_embeddings
         self.word_embeddings_path = word_embeddings_path
-        if not(self.user_bert_embeddings and self.word_embeddings_path):
+        if not(self.use_bert_embeddings or self.word_embeddings_path):
             raise ValueError('Neither bert embeddings or Word2Vec has been set')
 
         # Entity
@@ -78,7 +78,7 @@ class DKN:
             self.params.append(self.entity_embeddings)
 
             if self.use_context:
-                context_embs = np.load(self.context_embeddings)
+                context_embs = np.load(self.context_embeddings_path)
                 self.context_embeddings = tf.Variable(context_embs, dtype=np.float32, name='context')
                 self.params.append(self.context_embeddings)
 
