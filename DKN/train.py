@@ -31,7 +31,7 @@ def get_feed_dict_word_ids(model, data, start, end):
 
 
 def train(train_data, test_data, n_epochs=1, batch_size=128, output_path=None, **kwargs):
-
+    tf.compat.v1.reset_default_graph()
     if kwargs.get('use_bert_embeddings'):
         model = DKNBert(**kwargs)
         get_feed_dict = get_feed_dict_words
@@ -42,6 +42,7 @@ def train(train_data, test_data, n_epochs=1, batch_size=128, output_path=None, *
         get_feed_dict = get_feed_dict_word_ids
         logger.debug('Using W2V embeddings')
     saver = tf.compat.v1.train.Saver()
+
     with tf.compat.v1.Session() as sess:
         sess.run(tf.compat.v1.global_variables_initializer())
         sess.run(tf.compat.v1.local_variables_initializer())
