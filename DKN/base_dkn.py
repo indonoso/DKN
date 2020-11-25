@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import roc_auc_score
+import pickle
 
 
 class DKN:
@@ -104,7 +104,7 @@ class DKN:
 
         user_embeddings, item_embeddings = self._attention()
         self.scores_unnormalized = tf.reduce_sum(input_tensor=user_embeddings * item_embeddings, axis=1)
-        self.scores = tf.sigmoid(self.scores_unnormalized)
+        self.scores = tf.sigmoid(self.scores_unnormalized, name='scores')
 
     def _attention(self):
         # (batch_size * max_click_history, max_title_length)
@@ -202,12 +202,8 @@ class DKN:
     def train(self, sess, data, start, end):
         return sess.run(self.optimizer, self.get_feed_dict(data, start, end))
 
-    def eval(self, labels, scores):
-        auc = roc_auc_score(y_true=labels, y_score=scores)
-        return auc
-
-    def get_labels_scores(self, sess, feed_dict):
-        labels, scores = sess.run([self.labels, self.scores], feed_dict)
+    def predict(self,  data, start, end):
+        labels, scores = self.session.run([self.labels, self.scores], self.get_feed_dict(data, start, end))
         return labels, scores
 
     def get_feed_dict(self, data, start, end):
@@ -220,17 +216,52 @@ class DKN:
 
     def save_session(self):
         if self.output_path:
-            saver = tf.compat.v1.train.Saver()
-            save_path = saver.save(self.session, self.output_path)
-            print("Model saved in path: %s" % save_path)
+            saver = tf.compat.v1.train.Saver(max_to_keep=None)
+            saver.save(self.session, self.output_path / 'epoch', global_step=self.n_epochs)
+
+            print("Model saved in path: %s" % self.output_path)
         else:
             raise ValueError('Output path is None')
 
-    def __getstate__(self):
+    def save_prediction_model(self):
         self.save_session()
-        return self.model_params
+        with open(self.output_path, 'wb') as f:
+            pickle.dump({'params': self.model_params,
+                         'get_feed_dict': self.get_feed_dict}, f)
 
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.model_params = state
-        self.session = tf.compat.v1.saved_model.loader.load(self.output_path)
+
+class DKNPredict:
+    def __init__(self, params):
+        self.model_params = params['params']
+        self.session = tf.compat.v1.Session()
+
+        # Load session
+        graph = self.load_tf_model(self.model_params['output_path'],  self.model_params['n_epochs'])
+
+        # Load model components
+        self.clicked_words = graph.get_tensor_by_name("clicked_words:0")
+        self.clicked_entities = graph.get_tensor_by_name("clicked_entities:0")
+        self.words = graph.get_tensor_by_name("words:0")
+        self.entities = graph.get_tensor_by_name("entities:0")
+        self.labels = graph.get_tensor_by_name('labels:0')
+        self.scores = graph.get_tensor_by_name('scores:0')
+
+        # Load methods to transform data
+        self.get_feed_dict = params['get_feed_dict']
+        if self.model_params.get('scibert'):
+            self.scibert = self.model_params.get('scibert')
+
+    def load_tf_model(self, output_path, n_epochs):
+        saver = tf.compat.v1.train.import_meta_graph(output_path / 'epoch-{}.meta'.format(n_epochs))
+        saver.restore(self.session, output_path / 'epoch-{}'.format(n_epochs))
+        return tf.compat.v1.get_default_graph()
+
+    def predict(self, data, start, end):
+        labels, scores = self.session.run([self.labels, self.scores], self.get_feed_dict(data, start, end))
+        return labels, scores
+
+    @classmethod
+    def load_prediction_model(cls, output_path):
+        with open(output_path, 'wb') as f:
+            params = pickle.load(f)
+        return cls(params)

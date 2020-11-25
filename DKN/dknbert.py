@@ -12,6 +12,7 @@ class DKNBert(DKN):
         model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
         self.scibert = CachedFeatureExtractionPipeline(self.word_dim, self.max_text_length, model, tokenizer,
                                                        task='word_embeddings')
+        self.model_params['scibert'] = self.scibert
 
     def _build_inputs(self):
         with tf.compat.v1.name_scope('input'):
