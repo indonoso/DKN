@@ -60,12 +60,10 @@ class DKNBert(DKN):
         embedded_entities = tf.nn.embedding_lookup(params=self.entity_embeddings, ids=entities)
         return words, embedded_entities
 
-    def get_feed_dict(self, data, start, end):
-        feed_dict = {
-            self.clicked_words: np.array([self.scibert(cw.tolist()) for cw in data.clicked_words[start:end]]),
-            self.clicked_entities: data.clicked_entities[start:end],
-            self.words: np.array(self.scibert(data.words[start:end].tolist())),
-            self.entities: data.entities[start:end],
-            self.labels: data.labels[start:end]
-        }
-        return feed_dict
+    @staticmethod
+    def transform_feed_dict(data, start, end, model):
+        return [np.array([model.scibert(cw.tolist()) for cw in data.clicked_words[start:end]]),
+                data.clicked_entities[start:end],
+                np.array(model.scibert(data.words[start:end].tolist())),
+                data.entities[start:end],
+                data.labels[start:end]]

@@ -1,7 +1,8 @@
 import argparse
 from DKN import DataLoader
 from DKN import train_dkn
-
+from DKN.base_dkn import DKNPredict
+from DKN.train import evaluation
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -47,4 +48,8 @@ kwargs = vars(parser.parse_args())
 
 train_data = DataLoader(file_path=kwargs.pop('train_file'), **kwargs)
 test_data = DataLoader(file_path=kwargs.pop('test_file'), **kwargs)
-train_dkn(train_data.data, test_data.data, **kwargs)
+# train_dkn(train_data.data, test_data.data, **kwargs)
+
+model = DKNPredict.load_prediction_model('model')
+print(evaluation(test_data.data, kwargs['batch_size'], model))
+model.session.close()

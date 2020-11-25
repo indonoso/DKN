@@ -206,18 +206,27 @@ class DKN:
         labels, scores = self.session.run([self.labels, self.scores], self.get_feed_dict(data, start, end))
         return labels, scores
 
+    @staticmethod
+    def transform_feed_dict(data, start, end, model):
+        return [data.clicked_words[start:end],
+                data.clicked_entities[start:end],
+                data.words[start:end],
+                data.entities[start:end],
+                data.labels[start:end]]
+
     def get_feed_dict(self, data, start, end):
-        feed_dict = {self.clicked_words: data.clicked_words[start:end],
-                     self.clicked_entities: data.clicked_entities[start:end],
-                     self.words: data.words[start:end],
-                     self.entities: data.entities[start:end],
-                     self.labels: data.labels[start:end]}
+        transformed_data = self.transform_feed_dict(data, start, end, self)
+        feed_dict = {self.clicked_words: transformed_data[0],
+                     self.clicked_entities: transformed_data[1],
+                     self.words: transformed_data[2],
+                     self.entities: transformed_data[3],
+                     self.labels: transformed_data[4]}
         return feed_dict
 
     def save_session(self):
         if self.output_path:
             saver = tf.compat.v1.train.Saver(max_to_keep=None)
-            saver.save(self.session, self.output_path / 'epoch', global_step=self.n_epochs)
+            saver.save(self.session, self.output_path + '/epoch', global_step=self.n_epochs)
 
             print("Model saved in path: %s" % self.output_path)
         else:
@@ -225,9 +234,9 @@ class DKN:
 
     def save_prediction_model(self):
         self.save_session()
-        with open(self.output_path, 'wb') as f:
+        with open(str(self.output_path) + ".pickle", 'wb') as f:
             pickle.dump({'params': self.model_params,
-                         'get_feed_dict': self.get_feed_dict}, f)
+                         'transform_feed_dict': self.transform_feed_dict}, f)
 
 
 class DKNPredict:
@@ -239,21 +248,30 @@ class DKNPredict:
         graph = self.load_tf_model(self.model_params['output_path'],  self.model_params['n_epochs'])
 
         # Load model components
-        self.clicked_words = graph.get_tensor_by_name("clicked_words:0")
-        self.clicked_entities = graph.get_tensor_by_name("clicked_entities:0")
-        self.words = graph.get_tensor_by_name("words:0")
-        self.entities = graph.get_tensor_by_name("entities:0")
-        self.labels = graph.get_tensor_by_name('labels:0')
+        self.clicked_words = graph.get_tensor_by_name("input/clicked_words:0")
+        self.clicked_entities = graph.get_tensor_by_name("input/clicked_entities:0")
+        self.words = graph.get_tensor_by_name("input/words:0")
+        self.entities = graph.get_tensor_by_name("input/entities:0")
+        self.labels = graph.get_tensor_by_name('input/labels:0')
         self.scores = graph.get_tensor_by_name('scores:0')
 
         # Load methods to transform data
-        self.get_feed_dict = params['get_feed_dict']
+        self.transform_feed_dict = params['transform_feed_dict']
         if self.model_params.get('scibert'):
             self.scibert = self.model_params.get('scibert')
 
+    def get_feed_dict(self, data, start, end):
+        transformed_data = self.transform_feed_dict(data, start, end, self)
+        feed_dict = {self.clicked_words: transformed_data[0],
+                     self.clicked_entities: transformed_data[1],
+                     self.words: transformed_data[2],
+                     self.entities: transformed_data[3],
+                     self.labels: transformed_data[4]}
+        return feed_dict
+
     def load_tf_model(self, output_path, n_epochs):
-        saver = tf.compat.v1.train.import_meta_graph(output_path / 'epoch-{}.meta'.format(n_epochs))
-        saver.restore(self.session, output_path / 'epoch-{}'.format(n_epochs))
+        saver = tf.compat.v1.train.import_meta_graph(output_path + '/epoch-{}.meta'.format(n_epochs))
+        saver.restore(self.session, output_path + '/epoch-{}'.format(n_epochs))
         return tf.compat.v1.get_default_graph()
 
     def predict(self, data, start, end):
@@ -262,6 +280,6 @@ class DKNPredict:
 
     @classmethod
     def load_prediction_model(cls, output_path):
-        with open(output_path, 'wb') as f:
+        with open(output_path + '.pickle', 'rb') as f:
             params = pickle.load(f)
         return cls(params)
