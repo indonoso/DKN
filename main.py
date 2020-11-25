@@ -48,8 +48,9 @@ kwargs = vars(parser.parse_args())
 
 train_data = DataLoader(file_path=kwargs.pop('train_file'), **kwargs)
 test_data = DataLoader(file_path=kwargs.pop('test_file'), **kwargs)
-# train_dkn(train_data.data, test_data.data, **kwargs)
 
-model = DKNPredict.load_prediction_model('model')
+train_dkn(train_data.data, test_data.data, **kwargs)
+
+model = DKNPredict.load_prediction_model(kwargs['output_path'])
 print(evaluation(test_data.data, kwargs['batch_size'], model))
 model.session.close()

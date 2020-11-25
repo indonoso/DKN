@@ -3,6 +3,7 @@ import tensorflow as tf
 from transformers import AutoModel, AutoTokenizer
 from .pipeline import CachedFeatureExtractionPipeline
 from .base_dkn import DKN
+import pickle
 
 
 class DKNBert(DKN):
@@ -49,7 +50,7 @@ class DKNBert(DKN):
 
         user_embeddings, item_embeddings = self._attention()
         self.scores_unnormalized = tf.reduce_sum(input_tensor=user_embeddings * item_embeddings, axis=1)
-        self.scores = tf.sigmoid(self.scores_unnormalized)
+        self.scores = tf.sigmoid(self.scores_unnormalized, name='scores')
 
     def _prepare_data_attention(self):
         clicked_words = tf.reshape(self.clicked_words, shape=[-1, self.max_text_length, self.word_dim])
@@ -67,3 +68,9 @@ class DKNBert(DKN):
                 np.array(model.scibert(data.words[start:end].tolist())),
                 data.entities[start:end],
                 data.labels[start:end]]
+
+    def save_prediction_model(self):
+        self.save_session()
+        with open(str(self.output_path) + ".pickle", 'wb') as f:
+            pickle.dump({'params': self.model_params,
+                         'transform_feed_dict': self.transform_feed_dict}, f)
