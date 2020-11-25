@@ -17,6 +17,7 @@ def str2bool(v):
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_file', type=str, default='../data/news/train.txt', help='path to the training file')
 parser.add_argument('--test_file', type=str, default='../data/news/test.txt', help='path to the test file')
+parser.add_argument('--output_path', type=str, default='model', help='path to the test file')
 
 parser.add_argument('--entity_embeddings_path', type=str, default='', help='path to the training file')
 parser.add_argument('--word_embeddings_path', type=str, default='', help='path to the test file')

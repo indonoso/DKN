@@ -7,8 +7,18 @@ class DKN:
     def __init__(self, transform=False, use_bert_embeddings=None, word_embeddings_path=None,
                  entity_embeddings_path=None, context_embeddings_path=None, use_context=False, max_click_history=10,
                  max_text_length=10, entity_dim=32, word_dim=32, l2_weight=0.01, filter_sizes=(1, 2), n_filters=128,
-                 lr=0.001, batch_size=128, n_epochs=10):
-
+                 lr=0.001, batch_size=128, n_epochs=10, output_path=None):
+        self.model_params = dict(transform=transform, use_bert_embeddings=use_bert_embeddings,
+                                 word_embeddings_path=word_embeddings_path,
+                                 entity_embeddings_path=entity_embeddings_path,
+                                 context_embeddings_path=context_embeddings_path, use_context=use_context,
+                                 max_click_history=max_click_history, max_text_length=max_text_length,
+                                 entity_dim=entity_dim,
+                                 word_dim=word_dim, l2_weight=l2_weight, filter_sizes=filter_sizes, n_filters=n_filters,
+                                 lr=lr, batch_size=batch_size, n_epochs=n_epochs, output_path=output_path)
+        self.output_path = output_path
+        if output_path is None:
+            raise Warning("The output path has not been set. The model will not be saved.")
         # Embeddings
         self.transform = transform
 
@@ -46,6 +56,7 @@ class DKN:
         self._build_inputs()
         self._build_model()
         self._build_train()
+        self.session = None
 
     def _prepare_data_attention(self):
         clicked_words = tf.reshape(self.clicked_words, shape=[-1, self.max_text_length])
@@ -188,8 +199,8 @@ class DKN:
             self.loss = self.base_loss + self.l2_loss
             self.optimizer = tf.compat.v1.train.AdamOptimizer(self.lr).minimize(self.loss)
 
-    def train(self, sess, feed_dict):
-        return sess.run(self.optimizer, feed_dict)
+    def train(self, sess, data, start, end):
+        return sess.run(self.optimizer, self.get_feed_dict(data, start, end))
 
     def eval(self, labels, scores):
         auc = roc_auc_score(y_true=labels, y_score=scores)
@@ -198,3 +209,28 @@ class DKN:
     def get_labels_scores(self, sess, feed_dict):
         labels, scores = sess.run([self.labels, self.scores], feed_dict)
         return labels, scores
+
+    def get_feed_dict(self, data, start, end):
+        feed_dict = {self.clicked_words: data.clicked_words[start:end],
+                     self.clicked_entities: data.clicked_entities[start:end],
+                     self.words: data.words[start:end],
+                     self.entities: data.entities[start:end],
+                     self.labels: data.labels[start:end]}
+        return feed_dict
+
+    def save_session(self):
+        if self.output_path:
+            saver = tf.compat.v1.train.Saver()
+            save_path = saver.save(self.session, self.output_path)
+            print("Model saved in path: %s" % save_path)
+        else:
+            raise ValueError('Output path is None')
+
+    def __getstate__(self):
+        self.save_session()
+        return self.model_params
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.model_params = state
+        self.session = tf.compat.v1.saved_model.loader.load(self.output_path)

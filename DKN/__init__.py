@@ -1,3 +1,3 @@
 from .train import train as train_dkn
 from .data_loader import DataLoader
-__version__ = '0.2.2'
+__version__ = '0.3.0'
