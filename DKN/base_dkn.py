@@ -279,7 +279,11 @@ class DKNPredict:
         return labels, scores
 
     @classmethod
-    def load_prediction_model(cls, output_path):
+    def load_prediction_model(cls, output_path, paths=None):
         with open(output_path + '.pickle', 'rb') as f:
             params = pickle.load(f)
+
+        # If we have changed the folder of the files
+        if paths:
+            params['params'].update(paths)
         return cls(params)
