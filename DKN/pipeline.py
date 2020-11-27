@@ -1,14 +1,18 @@
 from transformers import FeatureExtractionPipeline
 import numpy as np
+import pickle
+import os
 
 
 class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
-    def __init__(self, word_dim, max_length, *args, **kwargs):
+    def __init__(self, word_dim, max_length, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.embeddings_cache = {}
         self.word_dim = word_dim
         self.max_length = max_length
+        self.name = name
+        self.load_cache()
 
     def _parse_and_tokenize(self, inputs, **kwargs):
         """
@@ -44,7 +48,22 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                 embeddings.append(sentence_embeddings)
             else:
                 embeddings.append(self.embeddings_cache[s])
+        if len(missing_sentences) > 0:
+            self.save_cache()
+
         if self.word_dim:
             return np.array(embeddings)[:, :, :self.word_dim]
         else:
             return np.array(embeddings)
+
+    def save_cache(self):
+        with open(f'.{self.name}cache', 'wb+') as f:
+            pickle.dump(self.embeddings_cache, f)
+
+    def load_cache(self):
+        if os.path.exists(f'.{self.name}cache'):
+            try:
+                with open(f'.{self.name}cache', 'rb') as f:
+                    self.embeddings_cache = pickle.load(f)
+            except EOFError:
+                pass

@@ -11,7 +11,7 @@ class DKNBert(DKN):
         super().__init__(**kwargs)
         tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
         model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
-        self.scibert = CachedFeatureExtractionPipeline(self.word_dim, self.max_text_length, model, tokenizer,
+        self.scibert = CachedFeatureExtractionPipeline(self.word_dim, self.max_text_length, 'scibert', model, tokenizer,
                                                        task='word_embeddings')
         self.model_params['scibert'] = self.scibert
 
