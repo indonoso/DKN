@@ -6,13 +6,15 @@ import os
 
 class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
 
-    def __init__(self, word_dim, max_length, name, *args, **kwargs):
+    def __init__(self, word_dim, max_length, name, *args, pickle_cache=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.embeddings_cache = {}
         self.word_dim = word_dim
         self.max_length = max_length
         self.name = name
+        self.pickle_cache = pickle_cache
         self.load_cache()
+        self.last_size = len(self.embeddings_cache)
 
     def _parse_and_tokenize(self, inputs, **kwargs):
         """
@@ -48,8 +50,7 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                 embeddings.append(sentence_embeddings)
             else:
                 embeddings.append(self.embeddings_cache[s])
-        if len(missing_sentences) > 0:
-            self.save_cache()
+        self.save_cache()
 
         if self.word_dim:
             return np.array(embeddings)[:, :, :self.word_dim]
@@ -57,8 +58,10 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
             return np.array(embeddings)
 
     def save_cache(self):
-        with open(f'.{self.name}cache', 'wb+') as f:
-            pickle.dump(self.embeddings_cache, f)
+        if len(self.embeddings_cache) - self.last_size > 5000:
+            self.last_size = len(self.embeddings_cache)
+            with open(f'.{self.name}cache', 'wb+') as f:
+                pickle.dump(self.embeddings_cache, f)
 
     def load_cache(self):
         if os.path.exists(f'.{self.name}cache'):
@@ -67,3 +70,14 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                     self.embeddings_cache = pickle.load(f)
             except EOFError:
                 pass
+
+    def __getstate__(self):
+        data = self.__dict__.copy()
+        if not self.pickle_cache:
+            del data['embeddings_cache']
+        return data
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.load_cache()
+        self.last_size = len(self.embeddings_cache)

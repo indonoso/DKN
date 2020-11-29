@@ -71,6 +71,7 @@ class DKNBert(DKN):
 
     def save_prediction_model(self):
         self.save_session()
+        self.scibert.save_cache()
         with open(str(self.output_path) + ".pickle", 'wb') as f:
             pickle.dump({'params': self.model_params,
                          'transform_feed_dict': self.transform_feed_dict}, f)
