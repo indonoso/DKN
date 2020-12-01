@@ -13,8 +13,8 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
         self.max_length = max_length
         self.name = name
         self.pickle_cache = pickle_cache
+        self.last_size = None
         self.load_cache()
-        self.last_size = len(self.embeddings_cache)
 
     def _parse_and_tokenize(self, inputs, **kwargs):
         """
@@ -68,16 +68,18 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
             try:
                 with open(f'.{self.name}cache', 'rb') as f:
                     self.embeddings_cache = pickle.load(f)
+                    self.last_size = len(self.embeddings_cache)
             except EOFError:
                 pass
 
     def __getstate__(self):
         data = self.__dict__.copy()
         if not self.pickle_cache:
-            del data['embeddings_cache']
+            data['embeddings_cache'] = {}
         return data
 
     def __setstate__(self, state):
+        if 'embeddings_cache' not in state:
+            state['embeddings_cache'] = {}
         self.__dict__ = state
         self.load_cache()
-        self.last_size = len(self.embeddings_cache)
