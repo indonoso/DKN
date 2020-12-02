@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 import pickle
+import logging
+logger = logging.getLogger(__name__)
 
 
 class DKN:
@@ -228,7 +230,7 @@ class DKN:
             saver = tf.compat.v1.train.Saver(max_to_keep=None)
             saver.save(self.session, self.output_path + '/epoch', global_step=self.n_epochs)
 
-            print("Model saved in path: %s" % self.output_path)
+            logger.info("Model saved in path: %s" % self.output_path)
         else:
             raise ValueError('Output path is None')
 

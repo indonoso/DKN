@@ -3,6 +3,11 @@ from DKN import DataLoader
 from DKN import train_dkn
 from DKN.base_dkn import DKNPredict
 from DKN.train import evaluation
+import logging
+
+logging.basicConfig(level=logging.DEBUG, datefmt='%d/%m/%Y %I:%M:%S %p',
+                    format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
+
 
 def str2bool(v):
     if isinstance(v, bool):

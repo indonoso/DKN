@@ -6,8 +6,6 @@ import logging
 from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 tf.compat.v1.disable_eager_execution()
-logging.basicConfig(level=logging.DEBUG, datefmt='%d/%m/%Y %I:%M:%S %p',
-                    format='%(name)s - %(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
