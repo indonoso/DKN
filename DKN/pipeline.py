@@ -13,7 +13,7 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
         self.max_length = max_length
         self.name = name
         self.pickle_cache = pickle_cache
-        self.last_size = None
+        self.last_size = 0
         self.load_cache()
 
     def _parse_and_tokenize(self, inputs, **kwargs):

@@ -1,4 +1,4 @@
-from .dknbert import DKNBert
+from .dkn_sentence_embedding import DKNSentenceEmbedding
 from .base_dkn import DKN
 import tensorflow as tf
 import numpy as np
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 def train(train_data, test_data, n_epochs=1, batch_size=128, fast_train=True, **kwargs):
     tf.compat.v1.reset_default_graph()
     if kwargs.get('use_bert_embeddings'):
-        model = DKNBert(n_epochs=n_epochs, batch_size=batch_size, **kwargs)
+        model = DKNSentenceEmbedding(n_epochs=n_epochs, batch_size=batch_size, **kwargs)
         logger.debug('Using Bert Embeddings')
     else:
-        model = DKN( n_epochs=n_epochs, batch_size=batch_size, **kwargs)
+        model = DKN(n_epochs=n_epochs, batch_size=batch_size, **kwargs)
         logger.debug('Using W2V embeddings')
 
     with tf.compat.v1.Session() as sess:

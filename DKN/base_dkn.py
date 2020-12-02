@@ -257,8 +257,8 @@ class DKNPredict:
 
         # Load methods to transform data
         self.transform_feed_dict = params['transform_feed_dict']
-        if self.model_params.get('scibert'):
-            self.scibert = self.model_params.get('scibert')
+        if self.model_params.get('embeddings_extractor'):
+            self.embeddings_extractor = self.model_params.get('embeddings_extractor')
 
     def get_feed_dict(self, data, start, end):
         transformed_data = self.transform_feed_dict(data, start, end, self)

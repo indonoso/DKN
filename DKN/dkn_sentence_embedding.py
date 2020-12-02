@@ -6,14 +6,22 @@ from .base_dkn import DKN
 import pickle
 
 
-class DKNBert(DKN):
+class DKNSentenceEmbedding(DKN):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
-        model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
-        self.scibert = CachedFeatureExtractionPipeline(self.word_dim, self.max_text_length, 'scibert', model, tokenizer,
-                                                       task='word_embeddings')
-        self.model_params['scibert'] = self.scibert
+        if self.word_embeddings_path is None:
+            raise Warning("Embeddings not specified, will be set to default scibert")
+
+        model_name = self.word_embeddings_path or 'allenai/scibert_scivocab_uncased'
+
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModel.from_pretrained(model_name)
+        self.embeddings_extractor = CachedFeatureExtractionPipeline(self.word_dim,
+                                                                    self.max_text_length,
+                                                                    model_name.replace('/', '-'),
+                                                                    model, tokenizer,
+                                                                    task='word_embeddings')
+        self.model_params['embeddings_extractor'] = self.embeddings_extractor
 
     def _build_inputs(self):
         with tf.compat.v1.name_scope('input'):
@@ -63,15 +71,15 @@ class DKNBert(DKN):
 
     @staticmethod
     def transform_feed_dict(data, start, end, model):
-        return [np.array([model.scibert(cw.tolist()) for cw in data.clicked_words[start:end]]),
+        return [np.array([model.embeddings_extractor(cw.tolist()) for cw in data.clicked_words[start:end]]),
                 data.clicked_entities[start:end],
-                np.array(model.scibert(data.words[start:end].tolist())),
+                np.array(model.embeddings_extractor(data.words[start:end].tolist())),
                 data.entities[start:end],
                 data.labels[start:end]]
 
     def save_prediction_model(self):
         self.save_session()
-        self.scibert.save_cache()
+        self.embeddings_extractor.save_cache()
         with open(str(self.output_path) + ".pickle", 'wb') as f:
             pickle.dump({'params': self.model_params,
                          'transform_feed_dict': self.transform_feed_dict}, f)
