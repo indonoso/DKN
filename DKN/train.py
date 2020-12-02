@@ -41,6 +41,7 @@ def train(train_data, test_data, n_epochs=1, batch_size=128, fast_train=True, **
 
         if model.output_path:
             model.save_prediction_model()
+    return train_auc, test_auc
 
 
 def evaluation(data, batch_size, model):
