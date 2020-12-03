@@ -25,12 +25,13 @@ class DataLoader:
         return self.data
 
     def read(self):
-        df = pd.read_table(self.file_path, sep='\t', header=None, names=['user_id', 'words', 'entities', 'label'])
+        df = pd.read_table(self.file_path, sep='\t', header=None, names=['user_id', 'words', 'words_encoded', 'entities', 'label'])
         df['entities'] = df['entities'].map(lambda x: self.__pad_truncate([int(i) for i in x.split(',')],
                                                                      self.max_text_length))
         if self.split_words:
-            df['words'] = df['words'].map(lambda x: self.__pad_truncate([int(i) for i in x.split(',')],
+            df['words'] = df['words_encoded'].map(lambda x: self.__pad_truncate([int(i) for i in x.split(',')],
                                                                    self.max_text_length))
+        del df['words_encoded']
         return df
 
     @staticmethod
