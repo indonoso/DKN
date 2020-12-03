@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='DKN',
-    version='0.5.1',
+    version='0.5.2',
     url='https://github.com/indonoso/DKN.git',
     author='Ivania Donoso-Guzmán based on fork',
     description='DKN using BERT',

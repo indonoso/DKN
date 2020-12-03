@@ -52,21 +52,18 @@ class CachedFeatureExtractionPipeline(FeatureExtractionPipeline):
                 embeddings.append(self.embeddings_cache[s])
         self.save_cache()
 
-        if self.word_dim:
-            return np.array(embeddings)[:, :, :self.word_dim]
-        else:
-            return np.array(embeddings)
+        return np.array(embeddings)
 
     def save_cache(self):
         if len(self.embeddings_cache) - self.last_size > 5000:
             self.last_size = len(self.embeddings_cache)
-            with open(f'.{self.name}cache', 'wb+') as f:
+            with open(f'.{self.name}_{self.max_length}cache', 'wb+') as f:
                 pickle.dump(self.embeddings_cache, f)
 
     def load_cache(self):
-        if os.path.exists(f'.{self.name}cache'):
+        if os.path.exists(f'.{self.name}_{self.max_length}cache'):
             try:
-                with open(f'.{self.name}cache', 'rb') as f:
+                with open(f'.{self.name}_{self.max_length}cache', 'rb') as f:
                     self.embeddings_cache = pickle.load(f)
                     self.last_size = len(self.embeddings_cache)
             except EOFError:
