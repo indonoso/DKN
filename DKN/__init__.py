@@ -1,4 +1,4 @@
 from .train import train as train_dkn
 from .data_loader import DataLoader
 
-__version__ = '0.5.2'
+__version__ = '0.5.3'
